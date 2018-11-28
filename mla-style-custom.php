@@ -2,7 +2,7 @@
 /**
  * Plugin Name:     MLA Style Custom
  * Plugin URI:      https://github.com/mlaa/mla-style-custom
- * Description:     Miscellaneous actions & filters for Humanities Commons.
+ * Description:     Miscellaneous actions & filters for MLA Style site.
  * Author:          MLA
  * Author URI:      https://github.com/mlaa
  * Text Domain:     mla-style-custom
@@ -16,3 +16,4 @@
  * Twitter post plugin
  */
 require_once trailingslashit( __DIR__ ) . 'includes/style-twitter-post-editor.php';
+STYLE_TWITTER_POST_EDITOR::getInstance();
