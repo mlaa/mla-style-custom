@@ -3,6 +3,9 @@
  * In post tweet editor for edit flow. Allows a user to create a post and add the body and image for that promotional
  * tweet inside that post edit page. The tweet will be published when the post id published. Likewise the tweet body
  * should be added to the post's edit flow calender hover pagelet. User: jbetancourt Date: 11/20/18 Time: 3:00 PM
+ *
+ * @package MLA Style Twitter Post Editor
+ * @version 1.0.1142018
  */
 
 class STYLE_TWITTER_POST_EDITOR {
@@ -19,7 +22,9 @@ class STYLE_TWITTER_POST_EDITOR {
 	private $data = array();
 
 	function __construct() {
-		include_once( 'normalizer.php' );
+		if(!class_exists( 'Normalizer')) {
+			require_once('normalizer.php');
+		}
 		$this->hc_stpe_setup_variables();
 		$this->hc_stpe_actions_and_filters();
 	}
@@ -73,9 +78,12 @@ class STYLE_TWITTER_POST_EDITOR {
 	 * Variables used through out the class are stored in magic vars and accessible using the $this->fieldname within
 	 * the class.
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @used-by __construct()
 	 * @defines $this->tweet_field
 	 * @defines $this->tweet_isSent_field
+	 * @return void
 	 */
 	public function hc_stpe_setup_variables() {
 		$this->tweet_field                = "txt_tweet";
@@ -89,6 +97,8 @@ class STYLE_TWITTER_POST_EDITOR {
 	/**
 	 * Load WP filters and actions
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @used-by __construct()
 	 */
 	public function hc_stpe_actions_and_filters() {
@@ -96,11 +106,17 @@ class STYLE_TWITTER_POST_EDITOR {
 		add_filter( 'get_user_option_meta-box-order_post', array( $this, 'hc_stpe_post_metabox_order' ) );
 		add_action( 'save_post', array( $this, 'hc_stpe_post_metabox_save' ), 10, 3 );
 		add_action( 'transition_post_status', array( $this, 'hc_stpe_on_published' ), 10, 3 );
+		add_filter( 'ef_calendar_item_information_fields', array(
+			$this,
+			'hc_stpe_add_tweet_to_edit_flow_calendar'
+		), 10, 2 );
 		//add_action( 'admin_enqueue_scripts', array( $this, 'hc_stpe_post_editor_js_css' ) );
 	}
 
 	/**
 	 * Private function to determine if the current site is MLA Style site.
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @used-by getInstance()
 	 * @return bool
@@ -113,6 +129,8 @@ class STYLE_TWITTER_POST_EDITOR {
 
 	/**
 	 * Adds the meta box(es) to the admin page.
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @used-by add_action( 'add_meta_boxes' )
 	 * @uses    get_current_screen()
@@ -137,6 +155,8 @@ class STYLE_TWITTER_POST_EDITOR {
 	/**
 	 * The metabox html call back function
 	 * This function places the twitter form unto the left side bar for default posts.
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @used-by hc_stpe_post_metabox_add()
 	 * @uses    get_post_meta()
@@ -166,7 +186,7 @@ class STYLE_TWITTER_POST_EDITOR {
 		$tmp      = $existing ?: "<a href='" . get_the_permalink() . "'>" . get_the_title() . "</a>";
 		$url      = get_the_title() ? $tmp : '';
 		if ( ! Normalizer::isNormalized( $url, Normalizer::FORM_C ) ) {
-			$url = Normalizer::normalize( 'A' . $url, Normalizer::FORM_C );
+			$url = Normalizer::normalize( $url, Normalizer::FORM_C );
 		}
 
 		wp_editor( $url, $this->tweet_field . '_id', array(
@@ -207,6 +227,8 @@ class STYLE_TWITTER_POST_EDITOR {
 	 * Because we use a secondary TinyMCE for the twitter textarea we need to add a JS event handler
 	 * directly inside the actual TinyMCE setup key in the php wp_editor method's settings arg.
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @used-by hc_stpe_twitter_editor()
 	 * @return string
 	 */
@@ -231,6 +253,8 @@ class STYLE_TWITTER_POST_EDITOR {
 	 * We need to reorder the twitter metabox so that it's directly underneath the publish button.
 	 * Any metabox NOT added to the array below will show up underneath those that are.
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @used-by add_action('get_user_option_meta-box-order_post' )
 	 * @uses    join()
 	 * @uses    $this->prefix
@@ -254,6 +278,8 @@ class STYLE_TWITTER_POST_EDITOR {
 	/**
 	 * Saves the twitter field if conditions allow it.
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @used-by add_action( 'save_post' )
 	 * @uses    get_current_screen()
 	 * @uses    current_user_can()
@@ -273,13 +299,22 @@ class STYLE_TWITTER_POST_EDITOR {
 		 *  We only want to save for Draft and Future statuses.
 		 *  After it's in a publish state we can't edit Tweets on Twitter, so we don't want to save it again.
 		 */
-		if ( empty( $post ) || ( $post->post_status !== 'inherit' && $post->post_status !== 'future' && $post->post_status != 'draft' ) ) {
-			error_log( 'saving disabled: post status - ' . $post->post_status );
 
+		$is_already_sent = get_post_meta( $post->ID, $this->tweet_isSent_field, true ) === true;
+		$tweet_field_value   = ! empty( $_POST[ $this->tweet_field ] ) ? self::hc_stpe_remove_p_tag( self::hc_stpe_of_kses_data( $_POST[ $this->tweet_field ] ) ) : false;
+
+		/**
+		 * We want to save the tweet field only when the criteria is met
+		 * - The post has never been sent before.
+		 * AND
+		 * - There is a tweet field value to save
+		 */
+		if ( $is_already_sent || ! $tweet_field_value ) {
+			error_log( 'STPE ERROR 001: Post based Tweet save disabled' );
 			return;
 		}
 
-		/** Only run on default post type */
+		/** Only run on default post-type 'post' */
 		$pt = get_current_screen()->post_type;
 		if ( $pt != 'post' ) {
 			return;
@@ -287,15 +322,17 @@ class STYLE_TWITTER_POST_EDITOR {
 
 		if ( current_user_can( 'edit_post', $post_id ) ) {
 			$this->post_id           = $post_id;
-			$this->tweet_field_value = ! empty( $_POST[ $this->tweet_field ] ) ? self::hc_stpe_remove_p_tag( self::hc_stpe_of_kses_data( $_POST[ $this->tweet_field ] ) ) : null;
+			$this->tweet_field_value = $tweet_field_value;
 			$this->hc_stpe_modify_tweet_metadata();
 		} else {
-			error_log( "STPE ERROR 001: Tweet Save Rejected: User cannot update post" );
+			error_log( "STPE ERROR 002: Tweet Save Rejected: User cannot update post" );
 		}
 	}
 
 	/**
 	 * Used to clean HTML that we want stored in the database.
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @used-by hc_stpe_post_metabox_save()
 	 * @uses    global $allowedposttags
@@ -312,7 +349,7 @@ class STYLE_TWITTER_POST_EDITOR {
 		$of_allowedposttags           = $allowedposttags;
 		$of_allowedposttags['script'] = array( 'type' => array() );
 		if ( ! Normalizer::isNormalized( $data, Normalizer::FORM_C ) ) {
-			$data = Normalizer::normalize( 'A' . $data, Normalizer::FORM_C );
+			$data = Normalizer::normalize( $data, Normalizer::FORM_C );
 		}
 
 		return wp_kses( $data, $of_allowedposttags );
@@ -320,6 +357,8 @@ class STYLE_TWITTER_POST_EDITOR {
 
 	/**
 	 * Used to remove the auto p that is added by TinyMCE
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @param $content
 	 *
@@ -336,6 +375,8 @@ class STYLE_TWITTER_POST_EDITOR {
 
 	/**
 	 * Saves the tweet field to to the post's meta data field
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @param bool $value
 	 *
@@ -355,7 +396,9 @@ class STYLE_TWITTER_POST_EDITOR {
 	/**
 	 * Not used but it's good to have.
 	 *
-	 * @uses delete_post_meta()
+	 * @since 1.0.1142018
+	 *
+	 * @uses  delete_post_meta()
 	 * @return bool
 	 */
 	private function hc_stpe_delete_tweet_metadata() {
@@ -364,6 +407,8 @@ class STYLE_TWITTER_POST_EDITOR {
 
 	/**
 	 * Kicks off the actual tweet to twitter on publish state change.
+	 *
+	 * @since   1.0.1142018
 	 *
 	 * @param $new_status
 	 * @param $old_status
@@ -376,28 +421,30 @@ class STYLE_TWITTER_POST_EDITOR {
 	 * @uses    hc_stpe_get_tweet_from_post()
 	 * @uses    update_post_meta()
 	 * @uses    hc_stpe_send_tweet_to_twitter()
+	 * @return void
 	 */
 	public function hc_stpe_on_published( $new_status, $old_status, $post ) {
+		error_log( "post has moved to " . $new_status );
 		// Only send this to twitter once ever. If you need to edit it after push you need to do it on twitter.
 		$id = get_the_ID();
 
-		if ( $new_status === 'publish' && get_post_meta( $id, $this->tweet_isSent_field, true ) == false ) {
-			if ( $tweet = $this->hc_stpe_get_tweet_from_post( $id ) ) {
-				update_post_meta( $id, $this->tweet_isSent_field, true );
-				$this->hc_stpe_send_tweet_to_twitter( $tweet, $id );
-			}
+		if ( $new_status === 'publish' && get_post_meta( $id, $this->tweet_isSent_field, true ) === false && $tweet = $this->hc_stpe_get_tweet_from_post( $id )) {
+			error_log( "ok, lets send a tweet!" );
+				$b = $this->hc_stpe_send_tweet_to_twitter( $tweet, $id ) === 1 ? true : false;
+				update_post_meta( $id, $this->tweet_isSent_field, $b );
 		}
 	}
 
 	/**
 	 * Retrieves the tweet from the post metadata
 	 *
+	 * @since   1.0.1142018
+	 *
 	 * @param $post_id
 	 *
 	 * @used-by hc_stpe_on_published()
 	 * @uses    get_post_meta()
 	 * @uses    $this->tweet_field
-	 *
 	 *
 	 * @return mixed
 	 */
@@ -406,38 +453,72 @@ class STYLE_TWITTER_POST_EDITOR {
 	}
 
 	/**
-	 * Insert the tweet as part of excerpt in cal view
+	 * Insert the tweet as part of excerpt into the publishing calendar view
+	 *
+	 * @since 1.0.1142018
 	 *
 	 * @param $post_id
 	 */
-	public function hc_stpe_add_tweet_to_edit_flow_calendar( $post_id ) {
+	public function hc_stpe_add_tweet_to_edit_flow_calendar( $infoFields, $post_id ) {
 
+		if ( $tweet = $this->hc_stpe_get_tweet_from_post( $post_id ) ) {
+			$tweet                 = preg_replace( "/<img[^>]+\>/i", " (image) ", $tweet );
+			$tweet                 = preg_replace( "/<a\s(.+?)>(.+?)<\/a>/is", "Link:($2)", $tweet );
+			$infoFields['hc_stpe'] = array(
+				"label" => "Tweet",
+				"value" => preg_replace( "/(<[a-zA-Z\/][^<>]*>|\[([^\]]+)\])/i", "", strip_tags( $tweet ) )
+			);
+		}
+
+		return $infoFields;
 	}
 
-
 	/**
+	 * Uses the WP to Twitter plugin to send out the tweet.
+	 *
+	 * @since   1.0.1142018
+	 *
 	 * @param $tweet
 	 * @param $post
 	 *
+	 * @uses    function_exists()
+	 * @uses    wpt_post_to_twitter()
 	 * @used-by hc_stpe_on_published()
+	 * @return int -1 == not sent, 0 == send failure, 1 == sent successful
 	 */
-	public function hc_stpe_send_tweet_to_twitter( $tweet, $post ) {
+	public function hc_stpe_send_tweet_to_twitter( $tweet, $post_id ) {
+		$resp = - 1;
+		if ( function_exists( 'wpt_post_to_twitter' ) ) {
+			$resp = wpt_post_to_twitter( $tweet, false, $post_id );
+		}
 
+		return (int) $resp;
 	}
 
 	/**
+	 * Ajax callback
+	 *
+	 * @since 1.0.1142018
+	 *
 	 * @param $tweet
 	 * @param $post
+	 *
+	 * @uses  hc_stpe_send_tweet_to_twitter()
+	 * @return int -1 == not sent, 0 == send failure, 1 == sent successful
 	 */
-	public function hc_stpe_send_retweet_to_twitter( $tweet, $post ) {
-
+	public function hc_stpe_send_retweet_to_twitter( $tweet, $post_id ) {
+		return $this->hc_stpe_send_tweet_to_twitter( $tweet, $post_id );
 	}
 
 	/**
+	 * Ajax Handler
+	 *
+	 * @since 1.0.1142018
+	 *
 	 * @param $tweet
 	 * @param $post
 	 */
-	public function hc_stpe_retweet_ajax_handler( $tweet, $post ) {
+	public function hc_stpe_retweet_ajax( $tweet, $post ) {
 
 	}
 }
