@@ -5,7 +5,7 @@
  * should be added to the post's edit flow calender hover pagelet. User: jbetancourt Date: 11/20/18 Time: 3:00 PM
  *
  * @package MLA Style Twitter Post Editor
- * @version 1.0.1142018
+ * @version 1.0.1212018
  */
 
 class STYLE_TWITTER_POST_EDITOR {
@@ -233,7 +233,7 @@ class STYLE_TWITTER_POST_EDITOR {
 	 * @return string
 	 */
 	private function hc_stpe_after_tinymce_settings_js() {
-		/** This is a JS function passed to the TINYMCE setup during hte wp_editor init*/
+		/** This is a JS function passed to the TINYMCE setup during the wp_editor init*/
 		return "[function(ed) {
 		    const max = 280;
             ed.on('keypress', function(e) {
