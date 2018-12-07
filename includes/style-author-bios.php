@@ -44,7 +44,6 @@ class STYLE_AUTHOR_BIOS {
 	 * @param $value
 	 */
 	public function __set( $name, $value ) {
-		$name                = "mla_sab_" . $name;
 		$this->data[ $name ] = $value;
 	}
 
@@ -52,7 +51,6 @@ class STYLE_AUTHOR_BIOS {
 	 * @param $name
 	 */
 	public function __unset( $name ) {
-		$name = "mla_sab_" . $name;
 		unset( $this->data[ $name ] );
 	}
 
@@ -62,7 +60,6 @@ class STYLE_AUTHOR_BIOS {
 	 * @return mixed|null
 	 */
 	public function __get( $name ) {
-		$name = "mla_sab_" . $name;
 		if ( array_key_exists( $name, $this->data ) ) {
 			return $this->data[ $name ];
 		}
@@ -247,7 +244,7 @@ HTMLCONTENT;
 			'hierarchical'      => $is_hierarchical,
 			'labels'            => $labels,
 			'show_ui'           => $show_ui,
-			'show_in_menu'      => false,
+			'show_in_menu'      => true,
 			'show_in_nav_menu'  => false,
 			'show_in_admin_bar' => true,
 			'show_admin_column' => true,
@@ -257,3 +254,4 @@ HTMLCONTENT;
 		) );
 	}
 }
+STYLE_AUTHOR_BIOS::getInstance();
