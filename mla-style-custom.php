@@ -13,6 +13,7 @@
  */
 
 /**
- * Twitter post plugin
+ * require child plugins then iniitate them,
+ * require_once trailingslashit( __DIR__ ) . 'includes/file.php';
  */
-require_once trailingslashit( __DIR__ ) . 'includes/style-twitter-post-editor.php';
+
