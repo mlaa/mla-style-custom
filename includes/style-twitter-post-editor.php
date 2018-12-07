@@ -181,8 +181,10 @@ class STYLE_TWITTER_POST_EDITOR {
 		 * otherwise we check to see if a title is in place in order to
 		 * add a default permalink. If no title we leave it blank.
 		 */
-
-		$existing = get_post_meta( get_the_ID(), $this->tweet_field, true );
+        $post_id = get_the_ID();
+        $post_meta = get_post_meta( $post_id );
+        error_log( print_r($post_meta,true));
+		$existing = get_post_meta( $post_id, $this->tweet_field, true );
 		$tmp      = $existing ?: "<a href='" . get_the_permalink() . "'>" . get_the_title() . "</a>";
 		$url      = get_the_title() ? $tmp : '';
 		if ( ! Normalizer::isNormalized( $url, Normalizer::FORM_C ) ) {
@@ -211,7 +213,9 @@ class STYLE_TWITTER_POST_EDITOR {
 			),
 			'quicktags'           => false
 		) );
-		$status  = get_post_meta( get_post(), $this->tweet_isSent_field, true ) ? "<span style='font-weight: bold'>Tweeted<span>" : "<span style='font-style: italic'>Pending Tweet</span>";
+		$is_already_sent = get_post_meta( $post_id, $this->tweet_isSent_field, true );
+		error_log($this->tweet_isSent_field);
+		$status  = get_post_meta( $post_id, $this->tweet_isSent_field, true ) === true ?"<span style='font-weight: bold'>Tweeted<span>": "<span style='font-style: italic'>Pending Tweet...</span>";
 		$content = preg_replace( "/(<[a-zA-Z\/][^<>]*>|\[([^\]]+)\])/i", "", $url );
 		$count   = 280 - strlen( $content );
 		?>

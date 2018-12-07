@@ -16,4 +16,6 @@
  * Twitter post plugin
  */
 require_once trailingslashit( __DIR__ ) . 'includes/style-twitter-post-editor.php';
+
+
 STYLE_TWITTER_POST_EDITOR::getInstance();
