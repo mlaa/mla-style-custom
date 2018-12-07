@@ -20,8 +20,6 @@ class STYLE_AUTHOR_BIOS {
 
 	function __construct() {
 		$this->setup_variables();
-		$this->setup_post();
-		$this->setup_taxonomies();
 		$this->actions_and_filters();
 	}
 
@@ -126,7 +124,38 @@ class STYLE_AUTHOR_BIOS {
 	 * @return void
 	 */
 	public function setup_taxonomies() {
-		$this->create_taxonomy('Author', array('post'), false );
+		$this->create_taxonomy( 'Author', array( 'post' ), false );
+		$authors = array(
+			'Nora Carr'                   => 'is an instructor at Queens College, City University of New York (CUNY). She is a PhD candidate in comparative literature at the CUNY Graduate Center.',
+			'Nancy Foasberg'              => 'is the humanities librarian at Queens College, City University of New York.',
+			'Angela Gibson'               => 'is the director of scholarly communication at the MLA. She has a decade and a half of editorial experience and holds a PhD in Middle English from the University of Rochester. Before coming to the MLA, she taught college courses in writing and literature.',
+			'Eric Wirth'                  => 'was the head of editorial services at the MLA for twenty-seven years, until his retirement in 2016, where he prepared scholarly writing for publication. Previously, he produced reference books at other publishers, after studying French literature in college.',
+			'Livia Arndal Woods'          => 'is a teaching fellow at Queens College, City University of New York, where she teaches composition and British literature. She is working on a book project on reading practices and pregnancy in nineteenth-century realist fiction as well as a series of articles on digital pedagogy.',
+			'Michael Kandel'              => 'has been editing at the MLA for twenty-one years. He also translated several Polish writers, among them Stanisław Lem, Andrzej Stasiuk, Marek Huberath, and Paweł Huelle, and edited, for Harcourt Brace, several American writers, among them Jonathan Lethem, Ursula K. Le Guin, James Morrow, and Patricia Anthony.',
+			'Barney Latimer'              => 'as senior editor of MLA publications, has copyedited PMLA articles for more than ten years. He holds an MA in English from New York University. He has taught high school and college classes in writing and literary analysis, as well as seminars in poetry writing at several nonprofit organizations that serve New Yorkers with mental illness.',
+			'Jennifer Rappaport'          => 'is managing editor, MLA style resources, at the Modern Language Association. She received a BA in English and French from Vassar College and an MA in comparative literature from New York University, where she taught expository writing. Before coming to the MLA, she worked as an editor at a university press and as a freelance copyeditor and translator for commercial and academic publishers.',
+			'Russell Grooms'              => 'is the reference and instruction librarian at Northern Virginia Community College, Woodbridge.',
+			'Erika Suffern'               => 'is the head of book publications at the MLA. She received a BA from Bard College and an MA from the University of Delaware and has ten years of editorial experience. Before joining the MLA staff in 2016, she was associate director of the Renaissance Society of America and managing editor of its journal, Renaissance Quarterly.',
+			'Joan M. Hoffman'             => 'is professor of Spanish at Western Washington University.',
+			'Modern Language Association' => 'Written by members of the MLA staff',
+			'Ellen Carillo'               => 'is associate professor at the University of Connecticut and the author of the MLA Guide to Digital Literacy, forthcoming in 2019.',
+			'Alice Yang'                  => 'is a student at Northwestern University and is spending her third year at Hertford College, University of Oxford. She is studying English literature at both institutions and planning to earn a master of fine arts in creative writing.',
+			'Joseph Wallace'              => 'copyedits articles for PMLA. He received a PhD from the University of North Carolina, Chapel Hill. Before coming to the Modern Language Association as an assistant editor, he edited articles for Studies in Philology and taught courses on writing and on early modern literature.',
+			'Elizabeth Brookbank'         => 'Elizabeth Brookbank is associate professor and instruction librarian at Western Oregon University. H. Faye Christenberry is comparative literature and philosophy librarian at the University of Washington. They are the authors of the MLA Guide to Undergraduate Research in Literature, forthcoming in 2019.',
+			'H. Faye Christenberry'       => 'H. Faye Christenberry is comparative literature and philosophy librarian at the University of Washington. They are the authors of the MLA Guide to Undergraduate Research in Literature, forthcoming in 2019.',
+			'Caitlin Duffy'               => ' is a former New York City secondary school teacher and a current PhD student in English literature at Stony Brook University, State University of New York.',
+		);
+		foreach ( $authors as $author => $description ) {
+			if ( ! term_exists( $author, 'author' ) ) {
+				wp_insert_term(
+					$author, // the term
+					'author', // the taxonomy
+					array(
+						'description' => $description,
+					)
+				);
+			}
+		}
 	}
 
 	/**
@@ -137,7 +166,8 @@ class STYLE_AUTHOR_BIOS {
 	 * @used-by __construct()
 	 */
 	public function actions_and_filters() {
-
+		add_action('init', array($this, 'setup_taxonomies'));
+		add_action('mla_style_theme_author_bios', array($this, 'render_html'));
 	}
 
 	/**
@@ -155,67 +185,35 @@ class STYLE_AUTHOR_BIOS {
 	}
 
 	/**
-	 * Adds the meta box(es) to the admin page.
-	 *
-	 * @since   1.0.1212018
-	 *
-	 * @used-by add_action( 'add_meta_boxes' )
-	 * @uses    get_current_screen()
-	 * @uses    add_meta_box()
-	 * @uses    $this->prefix
+	 * @param $
 	 */
-	public function post_metabox_add() {
-		$screen = get_current_screen();
-		if ( $screen->post_type != 'post' ) {
-			return;
+	public function render_html( $post_id ) {
+		$html = array();
+		$authors = wp_get_post_terms( $post_id, 'author' );
+		foreach ($authors as $description) {
+			$html[] = $this->render_author_description_html($description);
 		}
-		add_meta_box(
-			'internal_name',
-			_x( 'Display Label', 'This is a description', $this->plugin_name ),
-			array( $this, ' [[ callback function in this class ]] ' ),
-			$screen->id,
-			'side', //can be main, side, or advanced
-			'core'
-		);
+		return implode("", $html);
 	}
 
 	/**
-	 * Saves the meta field
+	 * @param $description
 	 *
-	 * @used-by add_action( 'save_post' )
-	 *
-	 * @param $post_id
-	 * @param $post
-	 * @param $update
-	 *
-	 * @since   1.0.1212018
-	 *
+	 * @return string
 	 */
+	private function render_author_description_html( $description ) {
+		$html = <<<HTMLCONTENT
+		<div class="author_container">
+			<div class="instructor-intro tile instructor-tile instructor-tile-small">
+				<div class="tile-link tile-body">
+					<div class="author-photo author-photo-guest"></div>
+					<p>$description</p>
+				</div>
+			</div>
+		</div> <!-- /.author_template -->
+HTMLCONTENT;
 
-	public function post_metabox_save( $post_id, $post, $update ) {
-
-	}
-
-
-	/**
-	 * @param $post_type_name
-	 * @param $args
-	 */
-	public function create_post_type( $post_type_name, $args ) {
-
-		if ( empty( $args['labels'] ) ) {
-			$args['labels'] = array(
-				'name'          => _x( $post_type_name, "", 'learningspace' ),
-				'singular_name' => _x( $post_type_name, "", 'learningspace' ),
-			);
-		}
-
-		//required for gutenberg
-		//$args['show_in_rest'] = true;
-
-
-		// Registering your Custom Post Type
-		register_post_type( $post_type_name, $args );
+		return $html;
 	}
 
 	/**
