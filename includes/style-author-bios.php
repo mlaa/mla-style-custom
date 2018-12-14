@@ -2,6 +2,8 @@
 /**
  *  Plugin to add guest authors to a post.
  *
+ * Tax image code sourced from https://catapultthemes.com/adding-an-image-upload-field-to-categories/
+ *
  * @package STYLE_AUTHOR_BIOS TEMPLATE
  * @version 1.0.1212018
  */
@@ -144,11 +146,18 @@ class STYLE_AUTHOR_BIOS {
 		);
 		foreach ( $authors as $author => $description ) {
 			if ( ! term_exists( $author, 'author' ) ) {
+			    if($author == 'Modern Language Association') {
+			        $slug = 'mla';
+                } else {
+				    $slug = explode(" ",$author);
+				    $slug = $slug[0][0].array_pop( $slug);
+                }
 				wp_insert_term(
 					$author, // the term
 					'author', // the taxonomy
 					array(
 						'description' => $description,
+                        'slug' => $slug
 					)
 				);
 			}
@@ -163,8 +172,16 @@ class STYLE_AUTHOR_BIOS {
 	 * @used-by __construct()
 	 */
 	public function actions_and_filters() {
-		add_action('init', array($this, 'setup_taxonomies'));
-		add_action('mla_style_theme_author_bios', array($this, 'render_html'));
+		add_action( 'init', array( $this, 'setup_taxonomies' ), 0 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'set_author_image_css' ), 9999 );
+		add_action( 'the_content', array( $this, 'render_html' ) );
+		add_action( 'author_add_form_fields', array( $this, 'add_category_image' ), 10, 2 );
+		add_action( 'created_auhor', array( $this, 'save_category_image' ), 10, 2 );
+		add_action( 'author_edit_form_fields', array( $this, 'update_category_image' ), 10, 2 );
+		add_action( 'edited_author', array( $this, 'updated_category_image' ), 10, 2 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'load_media' ) );
+		add_action( 'admin_footer', array( $this, 'add_script' ) );
+		//add_filter( 'template_include', array( $this, 'force_listing_templates' ) );
 	}
 
 	/**
@@ -182,28 +199,152 @@ class STYLE_AUTHOR_BIOS {
 	}
 
 	/**
+	 * @param $post_id
+	 * @param $post
+	 * @param $update
+	 *
+	 * @return bool
+	 */
+	public function set_defaults_on_admin_save ($post_id, $post, $update ) {
+		$post_type = get_post_type();
+        if("post" != $post_type || !$this->is_site() || in_category( 'behind-the-style' )) {
+            return false;
+        }
+
+		$default_taxonomy = get_term_by( 'slug', 'modern-language-association', 'author' );
+
+    }
+
+	/**
 	 * @param $
 	 */
-	public function render_html( $post_id ) {
-		$html = array();
-		$authors = wp_get_post_terms( $post_id, 'author' );
-		foreach ($authors as $description) {
-			$html[] = $this->render_author_description_html($description);
+	public function render_html( $content ) {
+		//Only add the authors to the Behind the Style post
+		if ( ! in_category( 'behind-the-style' ) && ! in_category( 'teaching-resources' ) ) {
+			return $content;
 		}
-		return implode("", $html);
+
+		$html    = array();
+		$post_id = get_the_ID();
+		$authors = wp_get_post_terms( $post_id, 'author' ) ?: $this->update_legacy_post_author_value( $post_id );
+		if ( $authors ) {
+			foreach ( $authors as $author ) {
+				$html[] = $this->render_author_description_html( $author );
+			}
+		} else {
+			$html[] = $this->render_author_description_html( 'mla' );
+		}
+
+		return $content . implode( "", $html );
+
 	}
 
 	/**
-	 * @param $description
+	 * @param $post_id
+	 *
+	 * @return array|bool|WP_Error
+	 */
+	public function update_legacy_post_author_value( $post_id ) {
+		if ( $author_meta = get_post_meta( $post_id, 'post_author', true ) ) {
+			$legacy_author_meta_value_map = array(
+				'carr'                    => 'Nora Carr',
+				'foasberg'                => 'Nancy Foasberg',
+				'gibson'                  => 'Angela Gibson',
+				'wirth'                   => 'Eric Wirth',
+				'woods'                   => 'Livia Arndal Woods',
+				'kandel'                  => 'Michael Kandel',
+				'latimer'                 => 'Barney Latimer',
+				'rappaport'               => 'Jennifer Rappaport',
+				'grooms'                  => 'Russell Grooms',
+				'suffern'                 => 'Erika Suffern',
+				'hoffman'                 => 'Joan M. Hoffman',
+				'mla'                     => 'Modern Language Association',
+				'carillo'                 => 'Ellen Carillo',
+				'yang'                    => 'Alice Yang',
+				'wallace'                 => 'Joseph Wallace',
+				'brookbank-christenberry' => array( 'Elizabeth Brookbank', 'H. Faye Christenberry' ),
+				'duffy'                   => 'Caitlin Duffy',
+			);
+			foreach ( explode( ",", $author_meta ) as $author ) {
+				wp_set_post_terms( $post_id, $legacy_author_meta_value_map[ $author ], 'author', true );
+			}
+
+			return wp_get_post_terms( $post_id, 'author' );
+		} else {
+			return false;
+		};
+
+	}
+
+	/**
+	 *
+	 */
+	public function set_author_image_css() {
+		if ( $authors = get_the_terms( get_the_ID(), 'author' ) ) {
+			$css = array();
+			foreach ( $authors as $author ) {
+			    $name =  strtolower($author->name);
+			    $arr = explode( " ", $name);
+				$image      = ".author-photo-" . array_pop($arr ) ;
+				$image_path = $this->get_author_image_path( $author->term_id );
+				if ( $image_path ) {
+					$css[] = $image_path ? "$image::before {background-image: url('" . $image_path . "') !important;}" : "";
+				}
+			}
+			wp_add_inline_style( 'mla-style-center-main', implode( "", $css ) );
+		}
+	}
+
+	/**
+	 * @param $term_id
 	 *
 	 * @return string
 	 */
-	private function render_author_description_html( $description ) {
+	private function get_author_image_path( $term_id ) {
+		$image_id = get_term_meta( $term_id, 'author-taxonomy-image-id', true );
+
+		return ! empty( $image_id ) ? wp_get_attachment_image_src( $image_id )[0] : "";
+	}
+
+	/**
+	 * @param $template
+	 *
+	 * @return string
+	 */
+	public function force_listing_templates( $template ) {
+		if ( is_tax( 'author' ) ) {
+			$template = WP_PLUGIN_DIR . '/' . plugin_basename( dirname( dirname( __FILE__ ) ) ) . '/templates/archive-author.php';
+		}
+
+		return $template;
+	}
+
+	/**
+	 * @param string $tax
+	 *
+	 * @return bool|string
+	 */
+	private function render_author_description_html( $tax = 'mla' ) {
+		$taxonomy = $tax;
+		if ( ! is_object( $tax ) && $tax === 'mla' ) {
+			$taxonomy = get_term_by( 'slug', 'modern-language-association', 'author' );
+		}
+
+		$description = $taxonomy->description;
+		$author      = $taxonomy->name;
+		$image_path  = $this->get_author_image_path( $taxonomy->term_id );
+		$image       = ! empty( $image_path ) ? "author-photo-" . array_pop( explode( " ", strtolower( $author ) ) ) : 'author-photo-guest';
+
+		if ( strpos( $description, $author ) === false ) {
+			$description = '<span style="font-weight: bold">' . $author . '</span> ' . $description;
+		}
+
 		$html = <<<HTMLCONTENT
 		<div class="author_container">
 			<div class="instructor-intro tile instructor-tile instructor-tile-small">
 				<div class="tile-link tile-body">
-					<div class="author-photo author-photo-guest"></div>
+
+					<div class="author-photo $image"></div>
 					<p>$description</p>
 				</div>
 			</div>
@@ -220,11 +361,17 @@ HTMLCONTENT;
 	 * @param bool  $labels
 	 * @param bool  $show_ui
 	 */
-	public function create_taxonomy( $tax_name, $post_types = array( "post" ), $is_hierarchical = true, $labels = false, $show_ui = true ) {
+	public
+	function create_taxonomy(
+		$tax_name, $post_types = array( "post" ), $is_hierarchical = true, $labels = false, $show_ui = true
+	) {
+		if ( ! class_exists( 'Inflector' ) ) {
+			require_once( 'inflector.php' );
+		}
 		if ( ! $labels ) {
 			$labels = array(
 				'name'              => _x( $tax_name, $tax_name ),
-				'singular_name'     => _x( $tax_name, $tax_name ),
+				'singular_name'     => _x( Inflector::singularize( $tax_name ), $tax_name ),
 				'search_items'      => __( 'Search ' . $tax_name ),
 				'all_items'         => __( 'All ' . $tax_name ),
 				'parent_item'       => null,
@@ -238,20 +385,181 @@ HTMLCONTENT;
 		}
 		if ( $is_hierarchical && empty( $labels['parent_item'] ) ) {
 			$labels['parent_item']       = __( 'Parent Topic' );
-			$labels['parent_item_colon'] = __( 'Parent Topic:' );
+			$labels['parent_item_colon'] = $labels['parent_item'] . __( ':' );
 		}
+		$slug    = Inflector::pluralize( strtolower( str_replace( " ", "-", $tax_name ) ) );
+		$rewrite = array(
+			'slug'         => $slug,
+			'pages'        => true,
+		);
 		register_taxonomy( strtolower( str_replace( " ", "_", $tax_name ) ), $post_types, array(
 			'hierarchical'      => $is_hierarchical,
 			'labels'            => $labels,
 			'show_ui'           => $show_ui,
+			'has_archive'       => true,
 			'show_in_menu'      => true,
-			'show_in_nav_menu'  => false,
+			'show_in_nav_menu'  => true,
 			'show_in_admin_bar' => true,
 			'show_admin_column' => true,
 			'query_var'         => true,
 			'show_in_rest'      => true,
-			'rewrite'           => array( 'slug' => $tax_name ),
+			'rewrite'           => $rewrite,
 		) );
 	}
+
+	public
+	function load_media() {
+		if ( ! isset( $_GET['taxonomy'] ) ) {
+			return;
+		}
+		wp_enqueue_media();
+	}
+
+	/**
+	 * Add a form field in the new category page
+	 *
+	 * @since 1.0.0
+	 */
+
+	public
+	function add_category_image(
+		$taxonomy
+	) { ?>
+        <div class="form-field term-group">
+            <label for="author-taxonomy-image-id"><?php _e( 'Image', $this->plugin_name ); ?></label>
+            <input type="hidden" id="author-taxonomy-image-id" name="author-taxonomy-image-id" class="custom_media_url"
+                   value="">
+            <div id="category-image-wrapper"></div>
+            <p>
+                <input type="button" class="button button-secondary author_tax_media_button"
+                       id="author_tax_media_button"
+                       name="author_tax_media_button" value="<?php _e( 'Add Image', $this->plugin_name ); ?>"/>
+                <input type="button" class="button button-secondary author_tax_media_remove"
+                       id="author_tax_media_remove"
+                       name="author_tax_media_remove" value="<?php _e( 'Remove Image', $this->plugin_name ); ?>"/>
+            </p>
+        </div>
+	<?php }
+
+	/**
+	 * Save the form field
+	 *
+	 * @since 1.0.0
+	 */
+	public
+	function save_category_image(
+		$term_id, $tt_id
+	) {
+		if ( isset( $_POST['author-taxonomy-image-id'] ) && '' !== $_POST['author-taxonomy-image-id'] ) {
+			add_term_meta( $term_id, 'author-taxonomy-image-id', absint( $_POST['author-taxonomy-image-id'] ), true );
+		}
+	}
+
+	/**
+	 * Edit the form field
+	 *
+	 * @since 1.0.0
+	 */
+	public
+	function update_category_image(
+		$term, $taxonomy
+	) { ?>
+        <tr class="form-field term-group-wrap">
+            <th scope="row">
+                <label for="author-taxonomy-image-id"><?php _e( 'Image', $this->plugin_name ); ?></label>
+            </th>
+            <td>
+				<?php $image_id = get_term_meta( $term->term_id, 'author-taxonomy-image-id', true ); ?>
+                <input type="hidden" id="author-taxonomy-image-id" name="author-taxonomy-image-id"
+                       value="<?php echo esc_attr( $image_id ); ?>">
+                <div id="category-image-wrapper">
+					<?php if ( $image_id ) { ?>
+						<?php echo wp_get_attachment_image( $image_id, 'thumbnail' ); ?>
+					<?php } ?>
+                </div>
+                <p>
+                    <input type="button" class="button button-secondary author_tax_media_button"
+                           id="author_tax_media_button" name="author_tax_media_button"
+                           value="<?php _e( 'Add Image', $this->plugin_name ); ?>"/>
+                    <input type="button" class="button button-secondary author_tax_media_remove"
+                           id="author_tax_media_remove" name="author_tax_media_remove"
+                           value="<?php _e( 'Remove Image', $this->plugin_name ); ?>"/>
+                </p>
+            </td>
+        </tr>
+	<?php }
+
+	/**
+	 * Update the form field value
+	 *
+	 * @since 1.0.0
+	 */
+	public
+	function updated_category_image(
+		$term_id, $tt_id
+	) {
+		if ( isset( $_POST['author-taxonomy-image-id'] ) && '' !== $_POST['author-taxonomy-image-id'] ) {
+			update_term_meta( $term_id, 'author-taxonomy-image-id', absint( $_POST['author-taxonomy-image-id'] ) );
+		} else {
+			update_term_meta( $term_id, 'author-taxonomy-image-id', '' );
+		}
+	}
+
+	/**
+	 * Enqueue styles and scripts
+	 *
+	 * @since 1.0.0
+	 */
+	public
+	function add_script() {
+		if ( ! isset( $_GET['taxonomy'] ) ) {
+			return;
+		}
+		?>
+        <script> jQuery(document).ready(function ($) {
+                _wpMediaViewsL10n.insertIntoPost = '<?php _e( "Insert", "author" ); ?>';
+
+                function ct_media_upload(button_class) {
+                    var _custom_media = true, _orig_send_attachment = wp.media.editor.send.attachment;
+                    $('body').on('click', button_class, function (e) {
+                        var button_id = '#' + $(this).attr('id');
+                        var send_attachment_bkp = wp.media.editor.send.attachment;
+                        var button = $(button_id);
+                        _custom_media = true;
+                        wp.media.editor.send.attachment = function (props, attachment) {
+                            if (_custom_media) {
+                                $('#author-taxonomy-image-id').val(attachment.id);
+                                $('#category-image-wrapper').html('<img class="custom_media_image" src="" style="margin:0;padding:0;max-height:100px;float:none;" />');
+                                $('#category-image-wrapper .custom_media_image').attr('src', attachment.url).css('display', 'block');
+                            } else {
+                                return _orig_send_attachment.apply(button_id, [props, attachment]);
+                            }
+                        }
+                        wp.media.editor.open(button);
+                        return false;
+                    });
+                }
+
+                ct_media_upload('.author_tax_media_button.button');
+                $('body').on('click', '.author_tax_media_remove', function () {
+                    $('#author-taxonomy-image-id').val('');
+                    $('#category-image-wrapper').html('<img class="custom_media_image" src="" style="margin:0;padding:0;max-height:100px;float:none;" />');
+                });
+                // Thanks: http://stackoverflow.com/questions/15281995/wordpress-create-category-ajax-response
+                $(document).ajaxComplete(function (event, xhr, settings) {
+                    var queryStringArr = settings.data.split('&');
+                    if ($.inArray('action=add-tag', queryStringArr) !== -1) {
+                        var xml = xhr.responseXML;
+                        $response = $(xml).find('term_id').text();
+                        if ($response != "") {
+                            // Clear the thumb image
+                            $('#category-image-wrapper').html('');
+                        }
+                    }
+                });
+            });
+        </script>
+	<?php }
 }
+
 STYLE_AUTHOR_BIOS::getInstance();
