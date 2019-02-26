@@ -144,7 +144,7 @@ class STYLE_AUTHOR_BIOS {
 			'H. Faye Christenberry'       => 'H. Faye Christenberry is comparative literature and philosophy librarian at the University of Washington. They are the authors of the MLA Guide to Undergraduate Research in Literature, forthcoming in 2019.',
 			'Caitlin Duffy'               => ' is a former New York City secondary school teacher and a current PhD student in English literature at Stony Brook University, State University of New York.',
                         'Bradley Smith'               => ' is an associate professor of English and the director of the First-Year Writing Program at Governors State University. His research interests include first-year writing pedagogy and writing program administration. He has published articles in College Composition and Communication and the Journal for the Assembly for Expanded Perspectives on Learning and has a chapter, written with Kerri K. Morris, in WPAs in Transition (Utah State UP, 2018).',
-                        'Mike Burke'                  => 'associate professor of English at St. Louis Community College, Meramec, has taught English at community colleges part-time since 2002 and full-time since 2007. He has also taught at the United States Military Academy and Southern Illinois University, Edwardsville. He is on the executive committee of the MLA forum on community colleges.',
+                        'Mike Burke'                  => ', associate professor of English at St. Louis Community College, Meramec, has taught English at community colleges part-time since 2002 and full-time since 2007. He has also taught at the United States Military Academy and Southern Illinois University, Edwardsville. He is on the executive committee of the MLA forum on community colleges.',
 		);
 		foreach ( $authors as $author => $description ) {
 			if ( ! term_exists( $author, 'author' ) ) {
@@ -266,6 +266,9 @@ class STYLE_AUTHOR_BIOS {
 				'wallace'                 => 'Joseph Wallace',
 				'brookbank-christenberry' => array( 'Elizabeth Brookbank', 'H. Faye Christenberry' ),
 				'duffy'                   => 'Caitlin Duffy',
+                                'smith'                   => 'Bradley Smith',
+                                'burke'                   => 'Mike Burke',
+
 			);
 			foreach ( explode( ",", $author_meta ) as $author ) {
 				wp_set_post_terms( $post_id, $legacy_author_meta_value_map[ $author ], 'author', true );
