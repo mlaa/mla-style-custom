@@ -123,7 +123,7 @@ class STYLE_AUTHOR_BIOS {
 	 * @return void
 	 */
 	public function setup_taxonomies() {
-		$this->create_taxonomy( 'Author', array( 'post' ), false );
+		$this->create_taxonomy( 'MLA Author', array( 'post' ), false );
 		$authors = array(
 			'Nora Carr'                   => 'is an instructor at Queens College, City University of New York (CUNY). She is a PhD candidate in comparative literature at the CUNY Graduate Center.',
 			'Nancy Foasberg'              => 'is the humanities librarian at Queens College, City University of New York.',
@@ -143,21 +143,23 @@ class STYLE_AUTHOR_BIOS {
 			'Elizabeth Brookbank'         => 'Elizabeth Brookbank is associate professor and instruction librarian at Western Oregon University. H. Faye Christenberry is comparative literature and philosophy librarian at the University of Washington. They are the authors of the MLA Guide to Undergraduate Research in Literature, forthcoming in 2019.',
 			'H. Faye Christenberry'       => 'H. Faye Christenberry is comparative literature and philosophy librarian at the University of Washington. They are the authors of the MLA Guide to Undergraduate Research in Literature, forthcoming in 2019.',
 			'Caitlin Duffy'               => ' is a former New York City secondary school teacher and a current PhD student in English literature at Stony Brook University, State University of New York.',
+			'Bradley Smith'               => ' is an associate professor of English and the director of the First-Year Writing Program at Governors State University. His research interests include first-year writing pedagogy and writing program administration. He has published articles in College Composition and Communication and the Journal for the Assembly for Expanded Perspectives on Learning and has a chapter, written with Kerri K. Morris, in WPAs in Transition (Utah State UP, 2018).',
+			'Mike Burke'                  => ', associate professor of English at St. Louis Community College, Meramec, has taught English at community colleges part-time since 2002 and full-time since 2007. He has also taught at the United States Military Academy and Southern Illinois University, Edwardsville. He is on the executive committee of the MLA forum on community colleges.',
 		);
 		foreach ( $authors as $author => $description ) {
-			if ( ! term_exists( $author, 'author' ) ) {
-			    if($author == 'Modern Language Association') {
-			        $slug = 'mla';
-                } else {
-				    $slug = explode(" ",$author);
-				    $slug = $slug[0][0].array_pop( $slug);
-                }
+			if ( ! term_exists( $author, 'mla_author' ) ) {
+				if($author == 'Modern Language Association') {
+					$slug = 'mla';
+				} else {
+					$slug = explode(" ",$author);
+					$slug = $slug[0][0].array_pop( $slug);
+				}
 				wp_insert_term(
 					$author, // the term
-					'author', // the taxonomy
+					'mla_author', // the taxonomy
 					array(
 						'description' => $description,
-                        'slug' => $slug
+						'slug' => $slug
 					)
 				);
 			}
@@ -207,13 +209,13 @@ class STYLE_AUTHOR_BIOS {
 	 */
 	public function set_defaults_on_admin_save ($post_id, $post, $update ) {
 		$post_type = get_post_type();
-        if("post" != $post_type || !$this->is_site() || in_category( 'behind-the-style' )) {
-            return false;
-        }
+		if("post" != $post_type || !$this->is_site() || in_category( 'behind-the-style' )) {
+			return false;
+		}
 
-		$default_taxonomy = get_term_by( 'slug', 'modern-language-association', 'author' );
+		$default_taxonomy = get_term_by( 'slug', 'modern-language-association', 'mla_author' );
 
-    }
+	}
 
 	/**
 	 * @param $
@@ -226,7 +228,7 @@ class STYLE_AUTHOR_BIOS {
 
 		$html    = array();
 		$post_id = get_the_ID();
-		$authors = wp_get_post_terms( $post_id, 'author' ) ?: $this->update_legacy_post_author_value( $post_id );
+		$authors = wp_get_post_terms( $post_id, 'mla_author' ) ?: $this->update_legacy_post_author_value( $post_id );
 		if ( $authors ) {
 			foreach ( $authors as $author ) {
 				$html[] = $this->render_author_description_html( $author );
@@ -264,12 +266,15 @@ class STYLE_AUTHOR_BIOS {
 				'wallace'                 => 'Joseph Wallace',
 				'brookbank-christenberry' => array( 'Elizabeth Brookbank', 'H. Faye Christenberry' ),
 				'duffy'                   => 'Caitlin Duffy',
+				'smith'                   => 'Bradley Smith',
+				'burke'                   => 'Mike Burke',
+
 			);
 			foreach ( explode( ",", $author_meta ) as $author ) {
-				wp_set_post_terms( $post_id, $legacy_author_meta_value_map[ $author ], 'author', true );
+				wp_set_post_terms( $post_id, $legacy_author_meta_value_map[ $author ], 'mla_author', true );
 			}
 
-			return wp_get_post_terms( $post_id, 'author' );
+			return wp_get_post_terms( $post_id, 'mla_author' );
 		} else {
 			return false;
 		};
@@ -280,11 +285,11 @@ class STYLE_AUTHOR_BIOS {
 	 *
 	 */
 	public function set_author_image_css() {
-		if ( $authors = get_the_terms( get_the_ID(), 'author' ) ) {
+		if ( $authors = get_the_terms( get_the_ID(), 'mla_author' ) ) {
 			$css = array();
 			foreach ( $authors as $author ) {
-			    $name =  strtolower($author->name);
-			    $arr = explode( " ", $name);
+				$name =  strtolower($author->name);
+				$arr = explode( " ", $name);
 				$image      = ".author-photo-" . array_pop($arr ) ;
 				$image_path = $this->get_author_image_path( $author->term_id );
 				if ( $image_path ) {
@@ -312,7 +317,7 @@ class STYLE_AUTHOR_BIOS {
 	 * @return string
 	 */
 	public function force_listing_templates( $template ) {
-		if ( is_tax( 'author' ) ) {
+		if ( is_tax( 'mla_author' ) ) {
 			$template = WP_PLUGIN_DIR . '/' . plugin_basename( dirname( dirname( __FILE__ ) ) ) . '/templates/archive-author.php';
 		}
 
@@ -327,7 +332,7 @@ class STYLE_AUTHOR_BIOS {
 	private function render_author_description_html( $tax = 'mla' ) {
 		$taxonomy = $tax;
 		if ( ! is_object( $tax ) && $tax === 'mla' ) {
-			$taxonomy = get_term_by( 'slug', 'modern-language-association', 'author' );
+			$taxonomy = get_term_by( 'slug', 'modern-language-association', 'mla_author' );
 		}
 
 		$description = $taxonomy->description;
