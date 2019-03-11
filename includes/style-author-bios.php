@@ -177,10 +177,10 @@ class STYLE_AUTHOR_BIOS {
 		add_action( 'init', array( $this, 'setup_taxonomies' ), 0 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'set_author_image_css' ), 9999 );
 		add_action( 'the_content', array( $this, 'render_html' ) );
-		add_action( 'author_add_form_fields', array( $this, 'add_category_image' ), 10, 2 );
-		add_action( 'created_auhor', array( $this, 'save_category_image' ), 10, 2 );
-		add_action( 'author_edit_form_fields', array( $this, 'update_category_image' ), 10, 2 );
-		add_action( 'edited_author', array( $this, 'updated_category_image' ), 10, 2 );
+		add_action( 'mla_author_add_form_fields', array( $this, 'add_category_image' ), 10, 2 );
+		add_action( 'created_mla_author', array( $this, 'save_category_image' ), 10, 2 );
+		add_action( 'mla_author_edit_form_fields', array( $this, 'update_category_image' ), 10, 2 );
+		add_action( 'edited_mla_author', array( $this, 'updated_category_image' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_media' ) );
 		add_action( 'admin_footer', array( $this, 'add_script' ) );
 		//add_filter( 'template_include', array( $this, 'force_listing_templates' ) );
