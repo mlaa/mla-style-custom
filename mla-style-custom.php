@@ -16,4 +16,5 @@
  * require child plugins then initiate them,
  * require_once trailingslashit( __DIR__ ) . 'includes/file.php';
  */
+require_once trailingslashit( __DIR__ ) . 'includes/elasticpress.php';
 require_once trailingslashit( __DIR__ ) . 'includes/style-author-bios.php';
