@@ -13,8 +13,7 @@
  *
  * @return array
  */
-function mla_style_custom_ep_search_results_array( $results, $response ) 
-{
+function mla_style_custom_ep_search_results_array( $results, $response ) {
     foreach($results[posts] as &$post ) {
         $post[post_content] = apply_filters('the_content', get_post_field('post_content', $post[post_id]));
     
