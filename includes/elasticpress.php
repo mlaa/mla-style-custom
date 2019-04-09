@@ -16,7 +16,7 @@
 function mla_style_custom_ep_search_results_array( $results, $response ) {
     foreach($results[posts] as &$post ) {
         $post[post_content] = apply_filters('the_content', get_post_field('post_content', $post[post_id]));
-    
+        $post[post_title] = apply_filters('the_title', get_post_field('post_title', $post[post_id])); 
     }
     return $results;
 }
