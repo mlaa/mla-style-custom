@@ -18,3 +18,4 @@
  */
 require_once trailingslashit( __DIR__ ) . 'includes/elasticpress.php';
 require_once trailingslashit( __DIR__ ) . 'includes/style-author-bios.php';
+require_once trailingslashit( __DIR__ ) . 'includes/wordpress.php';
