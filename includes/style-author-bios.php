@@ -341,7 +341,7 @@ class STYLE_AUTHOR_BIOS {
 		$image       = ! empty( $image_path ) ? "author-photo-" . array_pop( explode( " ", strtolower( $author ) ) ) : 'author-photo-guest';
 
 		if ( strpos( $description, $author ) === false ) {
-			$description = '<span style="font-weight: bold">' . $author . '</span> ' . $description;
+			$description = '<p class="author_contatiner--author-name">' . $author . '</p> ' . '<p>' . $description .'</p>';
 		}
 
 		$html = <<<HTMLCONTENT
@@ -350,7 +350,7 @@ class STYLE_AUTHOR_BIOS {
 				<div class="tile-link tile-body">
 
 					<div class="author-photo $image"></div>
-					<p>$description</p>
+					<div class="author_container--bio">$description</div>
 				</div>
 			</div>
 		</div> <!-- /.author_template -->
