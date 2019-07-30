@@ -340,7 +340,7 @@ class STYLE_AUTHOR_BIOS {
 		$image_path  = $this->get_author_image_path( $taxonomy->term_id );
 		$image       = ! empty( $image_path ) ? "author-photo-" . array_pop( explode( " ", strtolower( $author ) ) ) : 'author-photo-guest';
 
-		if ( strpos( $description, $author ) === false ) {
+		if ( !empty( $author ) ) {
 			$description = '<p class="author_contatiner--author-name">' . $author . '</p> ' . '<p>' . $description .'</p>';
 		}
 
