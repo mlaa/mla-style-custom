@@ -137,3 +137,45 @@ function mla_style_custom_wp_trim_excerpt( $excerpt ) {
 
 remove_filter('get_the_excerpt', 'wp_trim_excerpt');
 add_filter('get_the_excerpt', 'mla_style_custom_wp_trim_excerpt');
+
+
+/**
+ * Filters WP_Query arguments for initial ElasticPress indexing.
+ * Searches for posts with 'do_not_index' and adds those post IDs to 'posts__not_in' argument.
+ * @param array $args
+ * @return array
+ */
+function mla_style_custom_ep_filter( $args ) {
+    $query   = new WP_Query( array( 'meta_key' => 'do_not_index', 'meta_value' => 'true', 'fields' => 'ids' ) );
+    $exclude = array();
+    if ( 0 != $query->post_count ) {
+        $args[ 'post__not_in' ] = $query->posts;
+    }
+    return $args;
+}
+
+add_filter( 'ep_index_posts_args', 'mla_style_custom_ep_filter' );
+
+/**
+ * Filter to determine if a post should not be indexed.
+ * @param bool $return_val Default is false.
+ * @param array $post_args
+ * @param int $post_id
+ * @return boolean
+ */
+function mla_style_custom_ep_stop_sync( $return_val, $post_args, $post_id ) {
+    $to_index    = get_post_meta( $post_id, 'do_not_index', true );
+    $to_index    = filter_var( $to_index, FILTER_VALIDATE_BOOLEAN );
+
+    if ( false === boolval( $to_index ) ) {
+        return false;
+    }
+
+    if ( function_exists( 'ep_delete_post' ) ) {
+        ep_delete_post( $post_id );
+    }
+
+    return true;
+}
+
+add_filter( 'ep_post_sync_kill', 'mla_style_custom_ep_stop_sync', 10, 3 );
