@@ -19,15 +19,31 @@ add_action( 'add_meta_boxes', 'mla_style_custom_register_meta_boxes' );
  * @param WP_Post $post Current post object.
  */
 function mla_style_custom_author_order_callback( $post ) {
-	 $post_id = get_the_ID();
- 	 echo '<ul id="author-order-terms">';
-	
-	 $terms = get_the_terms( $post_id, 'mla_author' );
-         foreach ( $terms as $term ) {
-             echo '<li class="item" id="term-'.$term->term_id.'"><span>'. $term->name .'</span></li>';        
+    $post_id = get_the_ID();
+    echo '<ul id="author-order-terms">';
+
+    $terms = get_the_terms( $post_id, 'mla_author' );
+
+    $ordered_terms = get_post_meta( $post_id, '_term_order', true );
+ 
+   if( is_null( $ordered_terms )  ) {
+
+        foreach ( $terms as $term ) {
+            echo '<li class="item" id="term-'.$term->term_id.'"><span>'. $term->name .'</span></li>';        
+        } 
+	echo '</ul>';
+        echo '<a href="javascript: void(0); return false;" id="save_term_order" class="button-primary">Update Order</a>';  
+    } else {
+        $terms = $ordered_terms[ 'term_order' ];
+        $term_ids = explode ( ",", $terms );
+
+        for( $i = 0; $i < count ( $term_ids ); $i ++ ) {
+            $term = get_term( $term_ids[$i], $taxonomy, OBJECT);
+            echo '<li class="item" id="term-'.$term->term_id.'"><span>'. $term->name .'</span></li>';        
          }
          echo '</ul>';
          echo '<a href="javascript: void(0); return false;" id="save_term_order" class="button-primary">Update Order</a>';
+     }
 }
 
 function mla_style_custom_author_order_enqueue_admin_script( $hook ) {
@@ -41,6 +57,8 @@ function mla_style_custom_author_order_enqueue_admin_script( $hook ) {
 add_action( 'admin_enqueue_scripts', 'mla_style_custom_author_order_enqueue_admin_script' );
 
 add_action ( 'wp_ajax_save_term_order', 'term_order_save' );
+add_action ( 'wp_ajax_nopriv_my_action', 'term_order_save' );
+
 function term_order_save() {
     global $wpdb;
     
@@ -48,8 +66,8 @@ function term_order_save() {
     $item_id = $_POST['post_id'];
     $meta_key = '_term_order';
 
-    $order = $_POST[ 'order' ];
-    $str = str_replace( "term-", "", $order );
+    $term_order = $_POST[ 'order' ];
+    $str = str_replace( "term-", "", $term_order );
     $int = str_replace( "'", "", $str );
 
     update_post_meta( $item_id, $meta_key, array( 'term_order' => $int ) );

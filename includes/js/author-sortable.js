@@ -17,8 +17,11 @@ jQuery(document).ready(function($) {
         action:'save_term_order', 
         cache: false, 
         post_id: postID,  
-        order: jQuery("#the-terms").sortable('toArray').toString(),
-        success: ajax_response()
+        order: jQuery("#author-order-terms").sortable('toArray').toString(),
+        success:function(response) {
+	  //to-do
+	  
+	}
        });
             return false; 
     });   
