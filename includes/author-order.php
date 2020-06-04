@@ -118,10 +118,18 @@ function mla_style_custom_update_author_order_meta() {
     $result = array_diff($ordered_term_ids, $term_ids);
     
     if(!empty($result)) {
-       $result = array_diff($ordered_term_ids, $result);
+       $ordered_term_ids = array_diff($ordered_term_ids, $result);
     } 
-    $result2 = array_unique(array_merge($result, $term_ids));
-    $int = implode( ",", $result2 );
+
+    $result2 = array_diff($term_ids,$ordered_term_ids);
+    
+    if(!empty($result2)) {
+        foreach($result2 as $r) {
+            array_push($ordered_term_ids, $r);
+        }
+    }
+
+    $int = implode( ",", $ordered_term_ids );
   
     update_post_meta( get_the_ID(), '_term_order', array( 'term_order' => $int ) );
 }
