@@ -1,0 +1,23 @@
+#author-order-terms li:hover {
+    cursor: pointer;
+}
+
+#author-order-terms span {
+   background-color: #f1f1f1;
+  border: 1px solid #d3d3d3;;
+   
+   padding:10px;
+}
+
+#author-order-terms li.ui-sortable-helper{
+    cursor: move;
+}
+
+#author-order-terms {
+    list-style-type: none;
+    padding: 0;
+}
+
+#author-order-terms li {
+  padding-bottom: 20px;
+}
