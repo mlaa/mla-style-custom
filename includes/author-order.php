@@ -1,20 +1,20 @@
 <?php
 /**
- * Customizations to elasticpress plugin.
+ * Adding custom author interface.
  *
  * @package MLA_Style_Custom
  */
-/*
-**
- * Register meta box(es).
+
+/**
+ * Register author order metabox.
  */
 function mla_style_custom_register_meta_boxes() {
-    add_meta_box( 'meta-box-id', __( 'Author Order', 'textdomain' ), 'mla_style_custom_author_order_callback', 'post' );
+    add_meta_box( 'meta-box-id', __( 'MLA Author Order', 'textdomain' ), 'mla_style_custom_author_order_callback', 'post', 'side' );
 }
 add_action( 'add_meta_boxes', 'mla_style_custom_register_meta_boxes' );
  
 /**
- * Meta box display callback.
+ * Meta box display callback
  *
  * @param WP_Post $post Current post object.
  */
@@ -48,6 +48,11 @@ function mla_style_custom_author_order_callback( $post ) {
      echo '<a href="javascript: void(0); return false;" id="save_term_order" class="button-primary">Update Order</a>';
 }
 
+/**
+ * Admin enqueue scripts
+ *
+ * @param string $hook The current admin page..
+ */
 function mla_style_custom_author_order_enqueue_admin_script( $hook ) {
     $jtime = filemtime( dirname(__FILE__) . '/js/author-sortable.js'  );
     $ctime = filemtime( dirname(__FILE__) . '/css/mla-style-custom.css' );
@@ -58,9 +63,13 @@ function mla_style_custom_author_order_enqueue_admin_script( $hook ) {
 }
 add_action( 'admin_enqueue_scripts', 'mla_style_custom_author_order_enqueue_admin_script' );
 
-add_action ( 'wp_ajax_save_term_order', 'term_order_save' );
+add_action( 'wp_ajax_save_term_order', 'mla_style_custom_term_order_save' );
 
-function term_order_save() {
+/**
+ * Term order save. 
+ *
+ */
+function mla_style_custom_term_order_save() {
     global $wpdb;
     
     $wpdb->flush();
@@ -79,7 +88,12 @@ function term_order_save() {
     die(1);
 }
 
-function update_author_order_meta() {
+/**
+ * Update author order meta.
+ *
+ * Makes sure the author entries are in sync on post save.
+ */
+function mla_style_custom_update_author_order_meta() {
 
     $term_ids = array();
     $term_objs = get_the_terms( get_the_ID(), 'mla_author' );
@@ -112,4 +126,4 @@ function update_author_order_meta() {
     update_post_meta( get_the_ID(), '_term_order', array( 'term_order' => $int ) );
 }
 
-add_action( 'save_post', 'update_author_order_meta' );
+add_action( 'save_post', 'mla_style_custom_update_author_order_meta' );
