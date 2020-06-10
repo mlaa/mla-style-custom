@@ -227,13 +227,14 @@ class STYLE_AUTHOR_BIOS {
 		}
 
 		$html    = array();
+		$authors = array();
 		$post_id = get_the_ID();
 		$ordered_terms  = get_post_meta( $post_id, '_term_order', true );
 		if( empty($ordered_terms) ) {
 		    $authors = wp_get_post_terms( $post_id, 'mla_author' ) ?: $this->update_legacy_post_author_value( $post_id );
                 } else {
 		    $terms = $ordered_terms[ 'term_order' ];
-                    $ordered_term_ids  = explode( ",", $terms );
+                    $term_ids  = explode( ",", $terms );
 		    
 		    for( $i = 0; $i <  count ( $term_ids ); $i++ ) {
             		$authors[] = get_term( $term_ids[$i], $taxonomy, OBJECT);
