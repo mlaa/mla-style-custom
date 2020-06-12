@@ -227,8 +227,21 @@ class STYLE_AUTHOR_BIOS {
 		}
 
 		$html    = array();
+		$authors = array();
 		$post_id = get_the_ID();
-		$authors = wp_get_post_terms( $post_id, 'mla_author' ) ?: $this->update_legacy_post_author_value( $post_id );
+		$ordered_terms  = get_post_meta( $post_id, '_term_order', true );
+		if( empty($ordered_terms) ) {
+		    $authors = wp_get_post_terms( $post_id, 'mla_author' ) ?: $this->update_legacy_post_author_value( $post_id );
+                } else {
+		    $terms = $ordered_terms[ 'term_order' ];
+                    $term_ids  = explode( ",", $terms );
+		    
+		    for( $i = 0; $i <  count ( $term_ids ); $i++ ) {
+            		$authors[] = get_term( $term_ids[$i], $taxonomy, OBJECT);
+         	    }
+
+		}
+
 		if ( $authors ) {
 			foreach ( $authors as $author ) {
 				$html[] = $this->render_author_description_html( $author );
@@ -340,7 +353,7 @@ class STYLE_AUTHOR_BIOS {
 		$image_path  = $this->get_author_image_path( $taxonomy->term_id );
 		$image       = ! empty( $image_path ) ? "author-photo-" . array_pop( explode( " ", strtolower( $author ) ) ) : 'author-photo-guest';
 
-		if ( strpos( $description, $author ) === false ) {
+		if ( !empty( $author ) ) {
 			$description = '<p class="author_contatiner--author-name">' . $author . '</p> ' . '<p>' . $description .'</p>';
 		}
 
